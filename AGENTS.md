@@ -1,0 +1,1 @@
+- Use `bun`, not `npm` (i.e. `bun install`)

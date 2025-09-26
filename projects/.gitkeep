@@ -1,0 +1,2 @@
+# This file ensures the projects directory is tracked by git
+# even when all other files in the directory are ignored
