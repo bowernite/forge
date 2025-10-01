@@ -15,11 +15,6 @@ export interface ValidationCommand {
 	quickMode?: boolean;
 }
 
-export interface FilePatterns {
-	frontend: string;
-	jsTs: string;
-}
-
 export interface ValidationConfig {
 	commands: ValidationCommand[];
 	installCommand?: string;
