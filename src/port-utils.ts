@@ -1,29 +1,32 @@
 import chalk from "chalk";
 import { execa } from "execa";
+import type { Service } from "./config";
 
-export async function killPortProcesses(
-	ports: (number | undefined)[],
-): Promise<void> {
-	for (const port of ports) {
-		try {
-			console.log(chalk.yellow(`🧹 Checking for processes on port ${port}...`));
+export async function cleanUpOrphanedServices(services: Service[]) {
+	console.log(chalk.yellow("\n🧹 Checking for orphaned processes..."));
 
-			// Find processes on the port
-			const { stdout } = await execa("lsof", ["-i", `:${port}`], {
-				reject: false,
-			});
-			const lines = stdout
-				.split("\n")
-				.filter((line) => line.includes("LISTEN"));
+	for (const { port, name } of services) {
+		const { stdout } = await execa("lsof", ["-i", `:${port}`], {
+			reject: false,
+		});
 
-			if (lines.length > 0) {
-				const pids = lines.map((line) => line.split(/\s+/)[1]).filter(Boolean);
-				if (pids.length > 0) {
-					await execa("kill", ["-9", ...pids], { reject: false });
-				}
-			}
-		} catch (_error) {
-			// Ignore errors - port might not be in use
+		const orphanedProcesses = stdout
+			.split("\n")
+			.filter((line) => line.includes("LISTEN"))
+			.map((line) => line.split(/\s+/)[1])
+			.filter(Boolean);
+		if (orphanedProcesses.length) {
+			console.log(
+				chalk.red(
+					`🛑 Killing orphaned process for ${name.toUpperCase()} on port ${port}:`,
+				),
+			);
+			console.log(`\t${orphanedProcesses.join("\n\t")}`);
+			await killProcesses(orphanedProcesses);
 		}
 	}
+}
+
+async function killProcesses(processes: string[]) {
+	await execa("kill", ["-9", ...processes]);
 }

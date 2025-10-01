@@ -3,12 +3,12 @@ import { execa } from "execa";
 import { getChalkColor } from "./chalk-utils.js";
 import type { ValidationCommand, ValidationConfig } from "./config.js";
 import {
-	commitWithLint,
+	commitLintAndFormat,
 	getBranchChangedFiles,
 	getChangedFrontendFiles,
 	getChangedJsTsFiles,
+	getGitWorkingFiles,
 	showChangedFilesPreview,
-	showModifiedFiles,
 } from "./git-utils.js";
 
 export interface ValidationOptions {
@@ -23,13 +23,15 @@ export async function runValidation(
 ): Promise<boolean> {
 	const { quick = false, autoCommit = false, config } = options;
 
-	const changedFiles = await getBranchChangedFiles();
-	if (changedFiles.length === 0) {
+	const branchChangedFiles = await getBranchChangedFiles();
+	if (!branchChangedFiles.length) {
 		console.log(
 			chalk.yellow("⚠️  No changed files found to validate. Exiting."),
 		);
 		return true;
 	}
+
+	const initialWorkingFiles = await getGitWorkingFiles();
 
 	if (config.installCommand) {
 		console.log(chalk.blue("📦 Installing dependencies..."));
@@ -38,28 +40,56 @@ export async function runValidation(
 		} catch (error) {
 			console.error("Failed to install dependencies:", error);
 			return false;
+		} finally {
+			console.log("");
 		}
 	}
 	await showChangedFilesPreview();
 
-	const frontendFiles = await getChangedFrontendFiles();
-	const jsTsFiles = await getChangedJsTsFiles();
+	const changedFrontendFiles = await getChangedFrontendFiles();
+	const changedJsFiles = await getChangedJsTsFiles();
 
 	const commands = config.commands
-		.filter((cmd) => !quick || cmd.quickMode !== false)
+		.filter((cmd) => !quick || cmd.slow !== false)
 		.map((cmd) => ({
 			name: cmd.name,
 			command: cmd.command
-				.replace("{files}", frontendFiles.join(" "))
-				.replace("{files_js}", jsTsFiles.join(" ")),
+				.replace("{files}", changedFrontendFiles.join(" "))
+				.replace("{files_js}", changedJsFiles.join(" ")),
 		}));
 
 	const success = await runConcurrentValidation(commands);
+	console.log("\n========================================\n");
 
-	await showModifiedFiles();
+	const newWorkingFiles = await getGitWorkingFiles();
+	const changedFiles = newWorkingFiles.filter(
+		(file) => !initialWorkingFiles.includes(file),
+	);
+	const filesWereChanged = !!changedFiles.length;
+	if (filesWereChanged) {
+		console.log();
+		console.log("The following files have been modified:");
+		for (const file of changedFiles) {
+			console.log(`\t${file}`);
+		}
+	}
 
 	if (success) {
-		await commitWithLint(autoCommit);
+		console.log(`${chalk.green("✅ All good, homey")}`);
+
+		if (filesWereChanged) {
+			if (autoCommit) {
+				await commitLintAndFormat();
+			} else {
+				console.log(
+					chalk.gray(
+						"ℹ  Run with --auto-commit to automatically commit changes.",
+					),
+				);
+			}
+		}
+	} else {
+		console.log(`${chalk.red("❌ Something's afoot...")}`);
 	}
 
 	return success;
@@ -184,13 +214,6 @@ async function runConcurrentValidation(
 
 	const failed = results.filter((r) => !r.success);
 
-	console.log("\n========================================\n");
-
-	if (failed.length === 0) {
-		console.log(chalk.green("✅ Validation completed successfully."));
-		console.log(chalk.green("Good to go."));
-		return true;
-	} else {
-		return false;
-	}
+	const allSucceeded = failed.length === 0;
+	return allSucceeded;
 }

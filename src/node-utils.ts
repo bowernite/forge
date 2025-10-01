@@ -1,27 +1,3 @@
-import { execa } from "execa";
-
-export async function getNodeBinRunner(binName: string): Promise<string> {
-	if (await isRunnerAvailable("npx")) {
-		return `npx ${binName}`;
-	}
-
-	if (await isRunnerAvailable("bun")) {
-		return `bun ${binName}`;
-	}
-
-	// Fallback to npx if neither is detected
-	return `npx ${binName}`;
-
-	async function isRunnerAvailable(cmd: string) {
-		try {
-			await execa(cmd, ["--version"], { stdio: "ignore" });
-			return true;
-		} catch {
-			return false;
-		}
-	}
-}
-
 export function generateRunNodeCommand({
 	directory,
 	stringCommand,
@@ -55,3 +31,26 @@ export function runInDirectoryWithFnm(
 ): string {
 	return `zsh -c '${runWithFnm(`cd ${directory} && ${command}`)}'`;
 }
+
+// Could use at some point, if we don't want to have to put things like `bun run` in each config..?
+// export async function getNodeBinRunner(binName: string): Promise<string> {
+// 	if (await isRunnerAvailable("npx")) {
+// 		return `npx ${binName}`;
+// 	}
+
+// 	if (await isRunnerAvailable("bunx")) {
+// 		return `bunx ${binName}`;
+// 	}
+
+// 	// Fallback to npx if neither is detected
+// 	return `npx ${binName}`;
+
+// 	async function isRunnerAvailable(cmd: string) {
+// 		try {
+// 			await execa(cmd, ["--version"], { stdio: "ignore" });
+// 			return true;
+// 		} catch {
+// 			return false;
+// 		}
+// 	}
+// }

@@ -53,6 +53,7 @@ export function createColorMap(): Record<string, (text: string) => string> {
 	for (const bgColor of backgroundColorNames) {
 		for (const modifier of modifierNames) {
 			const key = `${bgColor}.${modifier}`;
+			// biome-ignore lint/suspicious/noExplicitAny: Fine for now 🤷‍♂️
 			const bgColorFn = chalk[bgColor as keyof typeof chalk] as any;
 			const modifierFn = bgColorFn[modifier];
 			if (typeof modifierFn === "function") {

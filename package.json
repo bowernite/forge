@@ -19,9 +19,9 @@
 		"spinnies": "^0.5.1"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
 		"@types/node": "^24.5.2",
 		"@types/spinnies": "^0.5.3",
-		"biome": "^0.3.3",
 		"typescript": "^5.9.2"
 	}
 }

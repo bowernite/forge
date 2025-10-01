@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { execa } from "execa";
 
 export async function getGitParentBranch(): Promise<string> {
@@ -143,42 +144,37 @@ export async function getBranchChangedFiles(
 	const baseBranch = options.baseBranch || (await getGitParentBranch());
 	const pattern = options.pattern;
 
-	try {
-		const changedSinceBase = await getChangedFilesAgainstBase(baseBranch);
-		const stagedChanges = await getStagedFiles();
-		const unstagedChanges = await getUnstagedFiles();
+	const changedSinceBase = await getChangedFilesAgainstBase(baseBranch);
+	const stagedChanges = await getStagedFiles();
+	const unstagedChanges = await getUnstagedFiles();
 
-		// Combine all outputs and filter for modified/added files
-		const allChanges = [changedSinceBase, stagedChanges, unstagedChanges]
-			.join("\n")
-			.split("\n")
-			.filter((line) => line.trim())
-			.map((line) => {
-				const parts = line.split("\t");
-				const status = parts[0];
-				const filename = parts[parts.length - 1];
-				return { status, filename };
-			})
-			.filter(({ status, filename }) => {
-				// Filter out deleted files (status 'D')
-				return status !== "D";
-			})
-			.map(({ filename }) => filename);
+	// Combine all outputs and filter for modified/added files
+	const allChanges = [changedSinceBase, stagedChanges, unstagedChanges]
+		.join("\n")
+		.split("\n")
+		.filter((line) => line.trim())
+		.map((line) => {
+			const parts = line.split("\t");
+			const status = parts[0];
+			const filename = parts[parts.length - 1];
+			return { status, filename };
+		})
+		.filter(({ status }) => {
+			// Filter out deleted files (status 'D')
+			return status !== "D";
+		})
+		.map(({ filename }) => filename);
 
-		// Remove duplicates
-		const uniqueFiles = [...new Set(allChanges)];
+	// Remove duplicates
+	const uniqueFiles = [...new Set(allChanges)];
 
-		// Apply pattern filter if provided
-		if (pattern) {
-			const regex = new RegExp(pattern);
-			return uniqueFiles.filter((file) => regex.test(file));
-		}
-
-		return uniqueFiles;
-	} catch (error) {
-		console.error("Error getting changed files:", error);
-		return [];
+	// Apply pattern filter if provided
+	if (pattern) {
+		const regex = new RegExp(pattern);
+		return uniqueFiles.filter((file) => regex.test(file));
 	}
+
+	return uniqueFiles;
 }
 
 export async function getChangedFrontendFiles(
@@ -200,71 +196,32 @@ export async function getChangedJsTsFiles(
 }
 
 export async function showChangedFilesPreview(): Promise<void> {
-	try {
-		const changedFiles = await getBranchChangedFiles();
-		const preview = changedFiles.join("\n");
+	const changedFiles = await getBranchChangedFiles();
 
-		console.log("💅 Changed files to be validated:");
-		console.log();
-		console.log(preview);
-	} catch (error) {
-		console.error("Error showing changed files preview:", error);
-	}
+	console.log(chalk.blue("💅 Changed files to be validated:"));
+	console.log(`\t${changedFiles.join("\n\t")}`);
 }
 
-export async function getModifiedFiles(): Promise<string[]> {
-	try {
-		const { stdout } = await execa("git", ["status", "--porcelain"], {
-			reject: false,
-		});
-		return stdout
-			.split("\n")
-			.filter((line) => line.trim())
-			.map((line) => line.substring(3)); // Remove the status prefix
-	} catch (error) {
-		console.error("Error getting modified files:", error);
-		return [];
-	}
+export async function getGitWorkingFiles(): Promise<string[]> {
+	const { stdout } = await execa("git", ["status", "--porcelain"], {
+		reject: false,
+	});
+	return stdout
+		.split("\n")
+		.filter((line) => line.trim())
+		.map((line) => line.substring(3)); // Remove the status prefix
 }
 
-export async function showModifiedFiles(): Promise<void> {
-	const modifiedFiles = await getModifiedFiles();
-	if (modifiedFiles.length > 0) {
-		console.log();
-		console.log("The following files have been modified:");
-		for (const file of modifiedFiles) {
-			console.log(`  ${file}`);
-		}
-	}
-}
-
-export async function commitWithLint(
-	autoCommit: boolean = false,
-): Promise<void> {
-	if (!autoCommit) {
-		console.log(
-			"Validation successful. Run with --auto-commit to automatically commit changes.",
-		);
+export async function commitLintAndFormat(): Promise<void> {
+	const modifiedFiles = await getGitWorkingFiles();
+	if (modifiedFiles.length === 0) {
+		console.log("No modified files to commit.");
 		return;
 	}
 
-	try {
-		const modifiedFiles = await getModifiedFiles();
-		if (modifiedFiles.length === 0) {
-			console.log("No modified files to commit.");
-			return;
-		}
-
-		await execa("git", ["add", ...modifiedFiles]);
-		await execa("git", [
-			"commit",
-			"-m",
-			"chore: apply linting and formatting fixes",
-		]);
-		console.log("✅ Changes committed successfully");
-	} catch (error) {
-		console.error("Error committing changes:", error);
-	}
+	await execa("git", ["add", ...modifiedFiles]);
+	await execa("git", ["commit", "-m", "lint & format"]);
+	console.log(chalk.green("✅ Commited 'lint & format'"));
 }
 
 async function getChangedFilesAgainstBase(baseBranch: string): Promise<string> {

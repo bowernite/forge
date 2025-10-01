@@ -27,12 +27,13 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 				"Automatically commit changes after successful validation",
 			)
 			.action(async (options) => {
+				if (!config.validation) throw new Error("No validation configured");
 				try {
 					const success = await runValidation({
 						full: options.full,
 						quick: options.quick,
 						autoCommit: options.autoCommit,
-						config: config.validation!,
+						config: config.validation,
 					});
 					process.exit(success ? 0 : 1);
 				} catch (error) {
@@ -56,11 +57,9 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 				"",
 			)
 			.action(async (service, _options) => {
+				if (!config.services) throw new Error("No services configured");
 				try {
-					await startServices({
-						service: service || undefined,
-						services: config.services!,
-					});
+					await startServices({ service, serviceConfig: config.services });
 				} catch (error) {
 					console.error(
 						chalk.red("Error:"),

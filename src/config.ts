@@ -1,6 +1,7 @@
 import type { ChalkColor } from "./chalk-utils.js";
 
 export interface Service {
+	name: string;
 	directory: string;
 	installCommand?: string;
 	startCommand: string;
@@ -12,7 +13,7 @@ export interface ValidationCommand {
 	name: string;
 	command: string;
 	color?: ChalkColor;
-	quickMode?: boolean;
+	slow?: boolean;
 }
 
 export interface ValidationConfig {
