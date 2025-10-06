@@ -74,28 +74,34 @@ export async function runValidation(
 		}
 	}
 
-	if (success) {
-		console.log(`${chalk.green("✅ All good, homey")}`);
-
-		if (filesWereChanged) {
-			if (autoCommit) {
-				await commitLintAndFormat();
-			} else {
-				console.log(
-					chalk.gray(
-						"ℹ  Run with --auto-commit to automatically commit changes.",
-					),
-				);
-			}
-		}
-	} else {
+	if (!success) {
 		console.log(`${chalk.red("❌ Something's afoot...")}`);
+		return false;
 	}
 
-	return success;
+	console.log(`${chalk.green("✅ All good, homey")}`);
+
+	if (filesWereChanged) {
+		const shouldCommit = autoCommit || (await promptYesNo("Commit changes?"));
+		if (shouldCommit) {
+			await commitLintAndFormat();
+		}
+
+		// 10% of the time, show the auto-commit tip
+		if (Math.random() < 0.1 && !autoCommit) {
+			console.log(
+				chalk.gray(
+					"ℹ  Run with --auto-commit to automatically commit changes.",
+				),
+			);
+		}
+	}
+
+	return true;
 }
 
 import Spinnies from "spinnies";
+import { promptYesNo } from "./utils.js";
 
 function getDefaultColors(): Array<(text: string) => string> {
 	return [
