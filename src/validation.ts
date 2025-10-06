@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { execa } from "execa";
+import Spinnies from "spinnies";
 import { getChalkColor } from "./chalk-utils.js";
 import type { ValidationCommand, ValidationConfig } from "./config.js";
 import {
@@ -10,6 +11,7 @@ import {
 	getGitWorkingFiles,
 	showChangedFilesPreview,
 } from "./git-utils.js";
+import { promptYesNo } from "./utils.js";
 
 export interface ValidationOptions {
 	full?: boolean;
@@ -50,7 +52,7 @@ export async function runValidation(
 	const changedJsFiles = await getChangedJsTsFiles();
 
 	const commands = config.commands
-		.filter((cmd) => !quick || cmd.slow !== false)
+		.filter((cmd) => !(quick && cmd.slow === true))
 		.map((cmd) => ({
 			name: cmd.name,
 			command: cmd.command
@@ -66,13 +68,6 @@ export async function runValidation(
 		(file) => !initialWorkingFiles.includes(file),
 	);
 	const filesWereChanged = !!changedFiles.length;
-	if (filesWereChanged) {
-		console.log();
-		console.log("The following files have been modified:");
-		for (const file of changedFiles) {
-			console.log(`\t${file}`);
-		}
-	}
 
 	if (!success) {
 		console.log(`${chalk.red("❌ Something's afoot...")}`);
@@ -82,6 +77,12 @@ export async function runValidation(
 	console.log(`${chalk.green("✅ All good, homey")}`);
 
 	if (filesWereChanged) {
+		console.log("\nThe following files have been modified:");
+		for (const file of changedFiles) {
+			console.log(`\t${file}`);
+		}
+
+		console.log("")
 		const shouldCommit = autoCommit || (await promptYesNo("Commit changes?"));
 		if (shouldCommit) {
 			await commitLintAndFormat();
@@ -99,9 +100,6 @@ export async function runValidation(
 
 	return true;
 }
-
-import Spinnies from "spinnies";
-import { promptYesNo } from "./utils.js";
 
 function getDefaultColors(): Array<(text: string) => string> {
 	return [
