@@ -65,5 +65,7 @@ jspm_packages/
 
 # Projects directory - ignore contents but keep directory
 projects/*
+!projects/frg.ts
+!projects/example.ts
 !projects/.gitkeep
 
