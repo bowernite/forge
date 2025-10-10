@@ -38,6 +38,10 @@ build_all() {
     
     # Find and build all TypeScript files
     find projects -name '*.ts' | while read -r file; do
+        if [[ "$file" == "projects/example.ts" ]]; then
+            continue
+        fi
+
         print_status "Building: $file"
         
         # Get the relative path without extension for output naming
