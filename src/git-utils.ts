@@ -195,6 +195,15 @@ export async function getChangedJsTsFiles(
 	});
 }
 
+export async function getChangedTestFiles(
+	baseBranch?: string,
+): Promise<string[]> {
+	return getBranchChangedFiles({
+		pattern: "\\.(test|spec|vitest)\\.(js|jsx|ts|tsx|mjs|cjs)$",
+		baseBranch,
+	});
+}
+
 export async function showChangedFilesPreview(): Promise<void> {
 	const changedFiles = await getBranchChangedFiles();
 

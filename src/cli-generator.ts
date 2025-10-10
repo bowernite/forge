@@ -16,39 +16,51 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 	program.name(name);
 
 	if (config.validation) {
-		// Validate command
-		program
+		const validateCommand = program
 			.command("validate")
-			.description("Run validation on changed files")
-			.option("--full", "Run full validation including build and audit")
-			.option("--quick", "Skip build and audit steps")
+			.description("Validate the project")
+			.option("--full", "Run all validation commands (not just the quick ones)")
 			.option(
 				"--auto-commit",
 				"Automatically commit changes after successful validation",
-			)
-			.action(async (options) => {
-				if (!config.validation) throw new Error("No validation configured");
-				try {
-					const success = await runValidation({
-						full: options.full,
-						quick: options.quick,
-						autoCommit: options.autoCommit,
-						config: config.validation,
-					});
-					process.exit(success ? 0 : 1);
-				} catch (error) {
-					console.error(
-						chalk.red("Error:"),
-						error instanceof Error ? error.message : String(error),
-					);
-					process.exit(1);
+			);
+
+		for (const cmd of config.validation.commands) {
+			const flagName = `--${cmd.name.toLowerCase()}`;
+			validateCommand.option(flagName, `Run ${cmd.name} validation`);
+		}
+
+		validateCommand.action(async (options) => {
+			if (!config.validation) throw new Error("No validation configured");
+			try {
+				const commandFlags: Record<string, boolean> = {};
+				for (const cmd of config.validation.commands) {
+					const optionKey = cmd.name.toLowerCase();
+					commandFlags[cmd.name] = options[optionKey] === true;
 				}
-			});
+
+				const success = await runValidation({
+					full: options.full,
+					autoCommit: options.autoCommit,
+					config: config.validation,
+					commandFlags,
+				});
+				process.exit(success ? 0 : 1);
+			} catch (error) {
+				console.error(
+					chalk.red("Error:"),
+					error instanceof Error ? error.message : String(error),
+				);
+				process.exit(1);
+			}
+		});
 	}
 
 	// Start command
 	if (config.services) {
-		program
+		const serviceNames = Object.keys(config.services);
+		const serviceList = serviceNames.map((name) => `  - ${name}`).join("\n");
+		const startCommand = program
 			.command("start [service]")
 			.description("Start services")
 			.argument(
@@ -68,6 +80,11 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 					process.exit(1);
 				}
 			});
+
+		startCommand.addHelpText(
+			"after",
+			`\nAvailable services:\n${serviceList}`,
+		);
 	}
 
 	// Config command
