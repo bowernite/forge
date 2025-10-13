@@ -14,6 +14,7 @@ export interface ValidationCommand {
 	command: string;
 	color?: ChalkColor;
 	slow?: boolean;
+	directory?: string;
 }
 
 export interface ValidationConfig {
