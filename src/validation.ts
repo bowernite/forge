@@ -177,7 +177,8 @@ async function runConcurrentValidation(
 					});
 				}
 
-				spinnies.succeed(cmd.name, { text: `✅ ${cmd.name} succeeded` });
+				// Adding a few spaces at the end, to paper over a bug where sometimes the last character is cut off
+				spinnies.succeed(cmd.name, { text: `✅ ${cmd.name} succeeded  ` });
 				return { name: cmd.name, success: true };
 			})
 			.catch((error) => {
