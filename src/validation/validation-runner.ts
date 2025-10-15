@@ -35,16 +35,11 @@ export async function runConcurrentValidation(
 		...commands.map((cmd) => `[${cmd.name}]`.length),
 	);
 
-	function getPaddedLabelParts(cmdName: string): {
-		colored: string;
-		padding: string;
-	} {
-		const label = `[${cmdName}]`;
-		const padding = " ".repeat(maxLabelLength - label.length);
-		return { colored: label, padding };
-	}
-
 	const promises = commands.map((cmd, index) => {
+		// console.log(`Running command: ${cmd.name}`);
+		// console.log(`  Command: ${cmd.command}`);
+		// console.log(`  In directory: ${cmd.cwd}`);
+		
 		const labelColor =
 			getChalkColor(cmd.color) || defaultColors[index % defaultColors.length];
 
@@ -99,5 +94,13 @@ export async function runConcurrentValidation(
 
 	const allSucceeded = failed.length === 0;
 	return allSucceeded;
-}
 
+	function getPaddedLabelParts(cmdName: string): {
+		colored: string;
+		padding: string;
+	} {
+		const label = `[${cmdName}]`;
+		const padding = " ".repeat(maxLabelLength - label.length);
+		return { colored: label, padding };
+	}
+}
