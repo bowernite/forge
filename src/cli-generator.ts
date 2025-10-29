@@ -129,6 +129,30 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 			}
 		});
 
+	// Pull command
+	program
+		.command("pull")
+		.description("Pull latest changes for the forge repo")
+		.action(async (_options) => {
+			try {
+				const binPath = path.resolve(process.execPath);
+				const binDir = path.dirname(binPath);
+				const forgeRoot = path.dirname(binDir);
+
+				console.log(chalk.blue(`Pulling latest changes in ${forgeRoot}...`));
+				await execa("git", ["pull"], {
+					cwd: forgeRoot,
+					stdio: "inherit",
+				});
+			} catch (error) {
+				console.error(
+					chalk.red("Error:"),
+					error instanceof Error ? error.message : String(error),
+				);
+				process.exit(1);
+			}
+		});
+
 	return program;
 }
 
