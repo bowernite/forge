@@ -1,5 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
+import { execa } from "execa";
+import path from "node:path";
 import type { Config } from "./config.js";
 import { startServices } from "./startup.js";
 import { runValidation } from "./validation.js";
@@ -94,6 +96,30 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 		.action(async (_options) => {
 			try {
 				console.log(JSON.stringify(config, null, 2));
+			} catch (error) {
+				console.error(
+					chalk.red("Error:"),
+					error instanceof Error ? error.message : String(error),
+				);
+				process.exit(1);
+			}
+		});
+
+	// Rebuild command
+	program
+		.command("rebuild")
+		.description("Rebuild this CLI binary")
+		.action(async (_options) => {
+			try {
+				const binPath = path.resolve(process.execPath);
+				const binDir = path.dirname(binPath);
+				const forgeRoot = path.dirname(binDir);
+				const buildScript = path.join(forgeRoot, "scripts", "build.sh");
+
+				await execa(buildScript, ["build", name], {
+					cwd: forgeRoot,
+					stdio: "inherit",
+				});
 			} catch (error) {
 				console.error(
 					chalk.red("Error:"),

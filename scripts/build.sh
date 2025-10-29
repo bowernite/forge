@@ -29,6 +29,45 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to build a single project
+build_single() {
+    local project_name="$1"
+    local file="projects/${project_name}.ts"
+    
+    if [[ ! -f "$file" ]]; then
+        print_error "Project file not found: $file"
+        exit 1
+    fi
+    
+    if [[ "$file" == "projects/example.ts" ]]; then
+        print_error "Cannot build example.ts"
+        exit 1
+    fi
+    
+    # Skip pure config files
+    if [[ "$file" == *"-config.ts" ]] || [[ "$file" == *"Config.ts" ]]; then
+        print_error "Cannot build config file: $file"
+        exit 1
+    fi
+    
+    # Create bin directory if it doesn't exist
+    mkdir -p bin
+    
+    print_status "Building: $file"
+    
+    # Get the relative path without extension for output naming
+    relative_path="${file#projects/}"
+    output_name="${relative_path%.ts}"
+    
+    # Build the file directly to bin directory
+    bun build --compile --outfile="bin/$output_name" "$file"
+    
+    # Clean up temporary files
+    rm -f .*.bun-build
+    
+    print_success "Build complete! Binary: bin/$output_name"
+}
+
 # Function to build all TypeScript files
 build_all() {
     print_status "Building all TypeScript files in projects directory..."
@@ -164,7 +203,11 @@ uninstall_binaries() {
 # Main script logic
 case "${1:-build}" in
     "build")
-        build_all
+        if [[ -n "$2" ]]; then
+            build_single "$2"
+        else
+            build_all
+        fi
         ;;
     "install")
         build_all
@@ -174,13 +217,17 @@ case "${1:-build}" in
         uninstall_binaries
         ;;
     "help"|"-h"|"--help")
-        echo "Usage: $0 [command]"
+        echo "Usage: $0 [command] [project]"
         echo ""
         echo "Commands:"
-        echo "  build     Build all TypeScript files (default)"
-        echo "  install   Build and install binaries to /usr/local/bin (use 'bun run global-install')"
-        echo "  uninstall Remove binaries from /usr/local/bin (use 'bun run global-uninstall')"
-        echo "  help      Show this help message"
+        echo "  build [project]  Build all TypeScript files, or single project if specified (default)"
+        echo "  install          Build and install binaries to /usr/local/bin (use 'bun run global-install')"
+        echo "  uninstall        Remove binaries from /usr/local/bin (use 'bun run global-uninstall')"
+        echo "  help             Show this help message"
+        echo ""
+        echo "Examples:"
+        echo "  $0 build         Build all projects"
+        echo "  $0 build frg     Build only the frg project"
         ;;
     *)
         print_error "Unknown command: $1"

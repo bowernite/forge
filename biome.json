@@ -1,0 +1,11 @@
+{
+  "linter": {
+    "rules": {
+      "biomeassist": {
+        "source": {
+          "organizeImports": "off"
+        }
+      }
+    }
+  }
+}
