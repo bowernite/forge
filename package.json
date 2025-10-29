@@ -6,8 +6,8 @@
   "scripts": {
     "build": "bun run build:all",
     "build:all": "./scripts/build.sh build",
-    "global-install": "./scripts/build.sh install",
-    "global-uninstall": "./scripts/build.sh uninstall",
+    "global-install": "./scripts/install.sh",
+    "global-uninstall": "./scripts/uninstall.sh",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf bin/* && mkdir -p bin"
   },
