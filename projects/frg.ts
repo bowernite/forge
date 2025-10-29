@@ -1,4 +1,4 @@
-import { createProjectCLI } from "../src/cli-generator.js";
+import { createCLI } from "../src/cli-generator.js";
 import type { Config } from "../src/config.js";
 
 const _ROOT_DIR = "$HOME/src/personal/forge";
@@ -23,5 +23,5 @@ const frgConfig: Config = {
 	},
 };
 
-const cli = createProjectCLI("frg", frgConfig);
+const cli = createCLI({ name: "frg", config: frgConfig });
 cli.parse();

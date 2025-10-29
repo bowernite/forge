@@ -155,7 +155,3 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 
 	return program;
 }
-
-export function createProjectCLI(projectName: string, config: Config): Command {
-	return createCLI({ name: projectName, config });
-}

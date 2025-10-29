@@ -1,4 +1,4 @@
-import { createProjectCLI } from "../src/cli-generator.js";
+import { createCLI } from "../src/cli-generator.js";
 import type { Config } from "../src/config.js";
 
 const ROOT_DIR = "$HOME/src/work/example";
@@ -51,5 +51,5 @@ const exampleConfig: Config = {
 	},
 };
 
-const program = createProjectCLI("example", exampleConfig);
+const program = createCLI({ name: "example", config: exampleConfig });
 program.parse();

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createProjectCLI } from "./cli-generator.js";
+import { createCLI } from "./cli-generator.js";
 import { loadProjectConfig } from "./project-loader.js";
 
 const projectName = process.argv[2];
@@ -18,7 +18,7 @@ if (!config) {
 	process.exit(1);
 }
 
-const program = createProjectCLI(projectName, config);
+const program = createCLI({ name: projectName, config });
 
 // Remove the project name from argv so commander doesn't see it
 process.argv = process.argv.slice(1);
