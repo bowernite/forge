@@ -1,29 +1,29 @@
 {
-  "name": "forge",
-  "version": "1.0.0",
-  "description": "Forge CLI - repository validation and service management",
-  "type": "module",
-  "scripts": {
-    "build": "bun run build:all",
-    "build:all": "./scripts/build.sh build",
-    "global-install": "./scripts/install.sh",
-    "global-uninstall": "./scripts/uninstall.sh",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf bin/* && mkdir -p bin"
-  },
-  "dependencies": {
-    "chalk": "^5.6.2",
-    "commander": "^14.0.1",
-    "concurrently": "^9.2.1",
-    "execa": "^9.6.0",
-    "prompts": "^2.4.2",
-    "spinnies": "^0.5.1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.2.4",
-    "@types/node": "^24.5.2",
-    "@types/prompts": "^2.4.9",
-    "@types/spinnies": "^0.5.3",
-    "typescript": "^5.9.2"
-  }
+	"name": "forge",
+	"version": "1.0.0",
+	"description": "Forge CLI - repository validation and service management",
+	"type": "module",
+	"scripts": {
+		"build": "bun run build:all",
+		"build:all": "./scripts/build.sh build",
+		"global-install": "./scripts/install.sh",
+		"global-uninstall": "./scripts/uninstall.sh",
+		"type-check": "tsc --noEmit",
+		"clean": "rm -rf bin/* && mkdir -p bin"
+	},
+	"dependencies": {
+		"chalk": "^5.6.2",
+		"commander": "^14.0.1",
+		"concurrently": "^9.2.1",
+		"execa": "^9.6.0",
+		"prompts": "^2.4.2",
+		"spinnies": "^0.5.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
+		"@types/node": "^24.5.2",
+		"@types/prompts": "^2.4.9",
+		"@types/spinnies": "^0.5.3",
+		"typescript": "^5.9.2"
+	}
 }

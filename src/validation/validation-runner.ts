@@ -39,7 +39,7 @@ export async function runConcurrentValidation(
 		// console.log(`Running command: ${cmd.name}`);
 		// console.log(`  Command: ${cmd.command}`);
 		// console.log(`  In directory: ${cmd.cwd}`);
-		
+
 		const labelColor =
 			getChalkColor(cmd.color) || defaultColors[index % defaultColors.length];
 

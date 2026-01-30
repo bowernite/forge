@@ -177,15 +177,6 @@ export async function getBranchChangedFiles(
 	return uniqueFiles;
 }
 
-export async function getChangedFrontendFiles(
-	baseBranch?: string,
-): Promise<string[]> {
-	return getBranchChangedFiles({
-		pattern: "\\.(js|jsx|ts|tsx|html|css|svelte|mjs)$",
-		baseBranch,
-	});
-}
-
 export async function getChangedJsTsFiles(
 	baseBranch?: string,
 ): Promise<string[]> {
@@ -257,10 +248,21 @@ async function getUnstagedFiles(): Promise<string> {
 	//     reject: false,
 	//   });
 
-	const { stdout } = await execa(
+	const { stdout: diffStdout } = await execa(
 		"git",
-		["ls-files", "--others", "--modified", "--exclude-standard"],
+		["diff", "--name-status"],
 		{ reject: false },
 	);
-	return stdout;
+	const { stdout: untrackedStdout } = await execa(
+		"git",
+		["ls-files", "--others", "--exclude-standard"],
+		{ reject: false },
+	);
+	const untrackedLines = untrackedStdout
+		.split("\n")
+		.filter((line) => line.trim())
+		.map((line) => `??\t${line}`)
+		.join("\n");
+
+	return [diffStdout, untrackedLines].filter((chunk) => chunk.trim()).join("\n");
 }

@@ -83,10 +83,7 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 				}
 			});
 
-		startCommand.addHelpText(
-			"after",
-			`\nAvailable services:\n${serviceList}`,
-		);
+		startCommand.addHelpText("after", `\nAvailable services:\n${serviceList}`);
 	}
 
 	// Config command

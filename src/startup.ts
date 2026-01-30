@@ -33,6 +33,7 @@ export async function startServices(options: StartupOptions): Promise<void> {
 		prefix: "name",
 		killOthersOn: ["failure"],
 		padPrefix: true,
+		shell: true,
 		prefixColors: Object.values(servicesToStart).map(
 			(service) => service.color ?? "bgBlue.bold",
 		),

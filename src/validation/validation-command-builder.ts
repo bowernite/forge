@@ -48,9 +48,15 @@ export function buildCommandContext(
 			: path.resolve(changedFiles.repoRoot, expandedDirectory);
 	}
 
-	const files = filterAndRelativizeFiles(changedFiles.frontendAbsolute, workingDir);
-	const filesJs = filterAndRelativizeFiles(changedFiles.jstsAbsolute, workingDir);
-	const filesTests = filterAndRelativizeFiles(changedFiles.testsAbsolute, workingDir);
+	const files = filterAndRelativizeFiles(changedFiles.allAbsolute, workingDir);
+	const filesJs = filterAndRelativizeFiles(
+		changedFiles.jstsAbsolute,
+		workingDir,
+	);
+	const filesTests = filterAndRelativizeFiles(
+		changedFiles.testsAbsolute,
+		workingDir,
+	);
 
 	const placeholders = {
 		"{files}": files.join(" "),
@@ -70,4 +76,3 @@ export function buildCommandContext(
 		filesTests,
 	};
 }
-

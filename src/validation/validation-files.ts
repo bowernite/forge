@@ -2,7 +2,6 @@ import { execa } from "execa";
 import path from "node:path";
 import {
 	getBranchChangedFiles,
-	getChangedFrontendFiles,
 	getChangedJsTsFiles,
 	getChangedTestFiles,
 } from "../git-utils.js";
@@ -10,11 +9,9 @@ import {
 export interface ChangedFiles {
 	repoRoot: string;
 	all: string[];
-	frontend: string[];
 	jsts: string[];
 	tests: string[];
 	allAbsolute: string[];
-	frontendAbsolute: string[];
 	jstsAbsolute: string[];
 	testsAbsolute: string[];
 }
@@ -28,7 +25,6 @@ export async function getChangedFilesContext(): Promise<ChangedFiles> {
 	const repoRoot = await getRepoRoot();
 
 	const all = await getBranchChangedFiles();
-	const frontend = await getChangedFrontendFiles();
 	const jsts = await getChangedJsTsFiles();
 	const tests = await getChangedTestFiles();
 
@@ -37,13 +33,10 @@ export async function getChangedFilesContext(): Promise<ChangedFiles> {
 	return {
 		repoRoot,
 		all,
-		frontend,
 		jsts,
 		tests,
 		allAbsolute: all.map(toAbsolute),
-		frontendAbsolute: frontend.map(toAbsolute),
 		jstsAbsolute: jsts.map(toAbsolute),
 		testsAbsolute: tests.map(toAbsolute),
 	};
 }
-

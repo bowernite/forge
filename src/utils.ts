@@ -12,15 +12,15 @@ export async function wait(ms: number): Promise<void> {
  */
 export function expandPath(pathString: string): string {
 	let expanded = pathString;
-	
+
 	expanded = expanded.replace(/\$(\w+)/g, (_, varName) => {
 		return process.env[varName] || `$${varName}`;
 	});
-	
+
 	if (expanded.startsWith("~/")) {
 		expanded = expanded.replace("~", homedir());
 	}
-	
+
 	return expanded;
 }
 
