@@ -11,12 +11,22 @@ export function generateRunNodeCommand({
 }
 
 /**
- * Wraps a command to run with fnm environment and automatic Node.js version detection
- * @param command - The command to execute
- * @returns The wrapped command that will use fnm for Node.js version management
+ * Wraps a command to run with fnm environment and automatic Node.js version detection.
+ * Uses zsh-specific hooks (--use-on-cd) — intended for interactive service commands
+ * wrapped in `zsh -c '...'`.
  */
 function runWithFnm(command: string): string {
 	return `eval "$(fnm env --use-on-cd --version-file-strategy=recursive --shell zsh)" && ${command}`;
+}
+
+/**
+ * Wraps a command with fnm env setup and an explicit `fnm use` call.
+ * POSIX-compatible (no shell hooks) — safe to use with execa's default /bin/sh.
+ * The caller is responsible for ensuring the shell's CWD is the repo directory
+ * so fnm can find the .nvmrc / .node-version file.
+ */
+export function wrapWithFnmUse(command: string): string {
+	return `eval "$(fnm env --version-file-strategy=recursive --shell bash)" && fnm use --silent-if-unchanged && ${command}`;
 }
 
 /**

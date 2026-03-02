@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { execa } from "execa";
 import Spinnies from "spinnies";
 import { getChalkColor } from "../chalk-utils.js";
+import { wrapWithFnmUse } from "../node-utils.js";
 import type { CommandContext } from "./validation-command-builder.js";
 
 function getDefaultColors(): Array<(text: string) => string> {
@@ -43,7 +44,7 @@ export async function runConcurrentValidation(
 		const labelColor =
 			getChalkColor(cmd.color) || defaultColors[index % defaultColors.length];
 
-		return execa(cmd.command, {
+		return execa(wrapWithFnmUse(cmd.command), {
 			shell: true,
 			cwd: cmd.cwd,
 			all: true,

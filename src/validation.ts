@@ -8,6 +8,7 @@ import {
 	showChangedFilesPreview,
 } from "./git-utils.js";
 import { promptYesNo } from "./utils.js";
+import { wrapWithFnmUse } from "./node-utils.js";
 import { buildCommandContext } from "./validation/validation-command-builder.js";
 import { getChangedFilesContext } from "./validation/validation-files.js";
 import { runConcurrentValidation } from "./validation/validation-runner.js";
@@ -42,7 +43,7 @@ export async function runValidation(
 	if (config.installCommand) {
 		console.log(chalk.blue("📦 Installing dependencies..."));
 		try {
-			await execa(config.installCommand, { stdio: "inherit", shell: true });
+			await execa(wrapWithFnmUse(config.installCommand), { stdio: "inherit", shell: true });
 		} catch (error) {
 			console.error("Failed to install dependencies:", error);
 			return false;
