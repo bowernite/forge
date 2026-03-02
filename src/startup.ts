@@ -1,12 +1,14 @@
 import chalk from "chalk";
 import concurrently from "concurrently";
 import type { Service, ServiceConfig } from "./config.js";
+import {
+	type ServiceLogStream,
+	createServiceLogStream,
+} from "./log-stream.js";
 import { generateRunNodeCommand } from "./node-utils.js";
 import { cleanUpOrphanedServices } from "./port-utils.js";
-import { wait } from "./utils.js";
+import { expandPath, wait } from "./utils.js";
 
-// Constants
-const _LOGS_DIR = "logs";
 const PORT_CLEANUP_DELAY = 1000;
 
 export interface StartupOptions {
@@ -25,21 +27,45 @@ export async function startServices(options: StartupOptions): Promise<void> {
 	await wait(PORT_CLEANUP_DELAY);
 
 	console.log(chalk.blue("\n🚀 Starting services...\n"));
+
 	const serviceCommands = servicesToStart.map((service) => ({
 		name: service.name.toUpperCase(),
 		command: buildServiceCommand(service),
 	}));
-	const { result } = concurrently(serviceCommands, {
+	const { commands, result } = concurrently(serviceCommands, {
 		prefix: "name",
 		killOthersOn: ["failure"],
 		padPrefix: true,
-		shell: true,
 		prefixColors: Object.values(servicesToStart).map(
 			(service) => service.color ?? "bgBlue.bold",
 		),
 	});
 
-	await result;
+	// Set up per-service log files by subscribing to each command's output
+	const logStreams: ServiceLogStream[] = [];
+	for (let i = 0; i < commands.length; i++) {
+		const svc = servicesToStart[i];
+		const cmd = commands[i];
+		const logStream = createServiceLogStream(
+			expandPath(svc.directory),
+			svc.name.toLowerCase(),
+		);
+		logStreams.push(logStream);
+
+		console.log(chalk.dim(`  📝 ${svc.name}: ${logStream.logPath}`));
+
+		cmd.stdout.subscribe((data) => logStream.write(data));
+		cmd.stderr.subscribe((data) => logStream.write(data));
+	}
+	console.log();
+
+	try {
+		await result;
+	} finally {
+		for (const stream of logStreams) {
+			stream.end();
+		}
+	}
 }
 
 function buildServiceCommand(service: Service): string {
@@ -54,32 +80,3 @@ function buildServiceCommand(service: Service): string {
 		stringCommand: command,
 	});
 }
-
-// async function prepareLogDirectory({
-// 	directory,
-// 	name,
-// }: Service): Promise<void> {
-// 	try {
-// 		await execa("mkdir", ["-p", `${directory}/${LOGS_DIR}`]);
-// 		await execa("touch", [`${directory}/${LOGS_DIR}/${name}.log`]);
-// 	} catch {
-// 		console.warn(chalk.yellow(`Warning: Could not prepare logs for ${name}`));
-// 	}
-// }
-
-// async function _runWithLogging(
-// 	name: string,
-// 	directory: string,
-// 	command: string,
-// ): Promise<void> {
-// 	try {
-// 		await prepareLogDirectory(name, directory);
-
-// 		const fullCommand = generateRunNodeCommand({ stringCommand: command });
-
-// 		await executeShellCommand(fullCommand, { cwd: directory });
-// 	} catch (error) {
-// 		console.error(chalk.red(`Error running ${name}:`), error);
-// 		throw new Error(`Failed to run ${name}`);
-// 	}
-// }
