@@ -31,7 +31,33 @@ export async function startServices(options: StartupOptions): Promise<void> {
 	const serviceCommands = servicesToStart.map((service) => ({
 		name: service.name.toUpperCase(),
 		command: buildServiceCommand(service),
+		displayCommand: service.installCommand
+			? `${service.installCommand} && ${service.startCommand}`
+			: service.startCommand,
+		directory: expandPath(service.directory),
 	}));
+
+	const allSameDir =
+		serviceCommands.length > 0 &&
+		serviceCommands.every(
+			(cmd) => cmd.directory === serviceCommands[0].directory,
+		);
+
+	if (allSameDir) {
+		console.log(chalk.dim(`  in ${serviceCommands[0].directory}\n`));
+		for (const cmd of serviceCommands) {
+			console.log(`  ${chalk.bold(cmd.name)} ${chalk.dim(cmd.displayCommand)}`);
+		}
+	} else {
+		for (const cmd of serviceCommands) {
+			console.log(
+				`  ${chalk.bold(cmd.name)} ${chalk.dim(cmd.displayCommand)}`,
+			);
+			console.log(chalk.dim(`    in ${cmd.directory}`));
+		}
+	}
+	console.log();
+
 	const { commands, result } = concurrently(serviceCommands, {
 		prefix: "name",
 		killOthersOn: ["failure"],

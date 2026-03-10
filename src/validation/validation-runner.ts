@@ -23,6 +23,22 @@ export async function runConcurrentValidation(
 ): Promise<boolean> {
 	console.log(chalk.blue("\n🚀 Running validation commands...\n"));
 
+	const allSameCwd =
+		commands.length > 0 && commands.every((cmd) => cmd.cwd === commands[0].cwd);
+
+	if (allSameCwd) {
+		console.log(chalk.dim(`  in ${commands[0].cwd}\n`));
+		for (const cmd of commands) {
+			console.log(`  ${chalk.bold(cmd.name)} ${chalk.dim(cmd.command)}`);
+		}
+	} else {
+		for (const cmd of commands) {
+			console.log(`  ${chalk.bold(cmd.name)} ${chalk.dim(cmd.command)}`);
+			console.log(chalk.dim(`    in ${cmd.cwd}`));
+		}
+	}
+	console.log();
+
 	const spinnies = new Spinnies();
 	commands.forEach((cmd) => {
 		spinnies.add(cmd.name, {
@@ -37,10 +53,6 @@ export async function runConcurrentValidation(
 	);
 
 	const promises = commands.map((cmd, index) => {
-		// console.log(`Running command: ${cmd.name}`);
-		// console.log(`  Command: ${cmd.command}`);
-		// console.log(`  In directory: ${cmd.cwd}`);
-
 		const labelColor =
 			getChalkColor(cmd.color) || defaultColors[index % defaultColors.length];
 
