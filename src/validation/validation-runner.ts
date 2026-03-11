@@ -42,17 +42,33 @@ export async function runConcurrentValidation(
 	const spinnies = new Spinnies();
 	commands.forEach((cmd) => {
 		spinnies.add(cmd.name, {
-			text: `🚀 ${cmd.name}: in progress...`,
+			text: cmd.skip
+				? `⏭️  ${cmd.name}: skipped (no matching files)`
+				: `🚀 ${cmd.name}: in progress...`,
 			spinnerColor: "blue",
 		});
+		if (cmd.skip) {
+			spinnies.succeed(cmd.name, { text: `⏭️  ${cmd.name} skipped (no matching files)  ` });
+		}
 	});
+
+	const activeCommands = commands.filter((cmd) => !cmd.skip);
 
 	const defaultColors = getDefaultColors();
 	const maxLabelLength = Math.max(
 		...commands.map((cmd) => `[${cmd.name}]`.length),
 	);
 
-	const promises = commands.map((cmd, index) => {
+	function getPaddedLabelParts(cmdName: string): {
+		colored: string;
+		padding: string;
+	} {
+		const label = `[${cmdName}]`;
+		const padding = " ".repeat(maxLabelLength - label.length);
+		return { colored: label, padding };
+	}
+
+	const promises = activeCommands.map((cmd, index) => {
 		const labelColor =
 			getChalkColor(cmd.color) || defaultColors[index % defaultColors.length];
 
@@ -107,13 +123,4 @@ export async function runConcurrentValidation(
 
 	const allSucceeded = failed.length === 0;
 	return allSucceeded;
-
-	function getPaddedLabelParts(cmdName: string): {
-		colored: string;
-		padding: string;
-	} {
-		const label = `[${cmdName}]`;
-		const padding = " ".repeat(maxLabelLength - label.length);
-		return { colored: label, padding };
-	}
 }

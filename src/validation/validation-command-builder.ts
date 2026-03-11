@@ -11,6 +11,7 @@ export interface CommandContext {
 	files: string[];
 	filesJs: string[];
 	filesTests: string[];
+	skip?: boolean;
 }
 
 function filterAndRelativizeFiles(
@@ -34,6 +35,19 @@ function resolvePlaceholders(
 		result = result.replace(key, value);
 	}
 	return result;
+}
+
+// Check if the command template uses any placeholders that resolved to empty
+function hasEmptyRequiredPlaceholders(
+	template: string,
+	placeholders: Record<string, string>,
+): boolean {
+	for (const [key, value] of Object.entries(placeholders)) {
+		if (template.includes(key) && !value.trim()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 export function buildCommandContext(
@@ -64,6 +78,7 @@ export function buildCommandContext(
 		"{files_tests}": filesTests.join(" "),
 	};
 
+	const skip = hasEmptyRequiredPlaceholders(cmd.command, placeholders);
 	const resolvedCommand = resolvePlaceholders(cmd.command, placeholders);
 
 	return {
@@ -74,5 +89,6 @@ export function buildCommandContext(
 		files,
 		filesJs,
 		filesTests,
+		skip,
 	};
 }

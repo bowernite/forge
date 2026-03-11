@@ -3,16 +3,21 @@ import { execa } from "execa";
 
 export async function getGitParentBranch(): Promise<string> {
 	try {
+		const currentBranch = await getCurrentGitBranch();
+		const devBranch = await getGitDevBranch();
+
+		// If we're on the trunk branch itself, compare against its remote tracking branch
+		if (currentBranch === devBranch) {
+			return `origin/${devBranch}`;
+		}
+
 		try {
 			const graphiteParent = await getGraphiteParentBranch();
 			if (graphiteParent) return graphiteParent;
 		} catch {}
 
-		const currentBranch = await getCurrentGitBranch();
-
 		if (await doesBranchHaveItsOwnRootCommit(currentBranch)) {
-			// If branch has its own root commit, it's not branched from anywhere in this repo
-			return getGitDevBranch();
+			return devBranch;
 		}
 
 		// Try to find the best guess parent branch
