@@ -31,9 +31,10 @@ export async function getGitParentBranch(): Promise<string> {
 async function doesBranchHaveItsOwnRootCommit(
 	branch: string,
 ): Promise<boolean> {
-	const rootCommit = await getBranchRootCommit(branch);
-	const headRoot = await getBranchRootCommit("HEAD");
-	return rootCommit !== headRoot;
+	const devBranch = await getGitDevBranch();
+	const branchRoot = await getBranchRootCommit(branch);
+	const devRoot = await getBranchRootCommit(devBranch);
+	return branchRoot !== devRoot;
 }
 
 async function findBestGuessParentBranch(
