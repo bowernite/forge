@@ -39,12 +39,15 @@ async function doesBranchHaveItsOwnRootCommit(
 async function findBestGuessParentBranch(
 	currentBranch: string,
 ): Promise<string | undefined> {
+	const devBranch = await getGitDevBranch();
+
 	// Get local branches excluding the current one
 	const branches = (await getLocalBranches()).filter(
 		(branch) => branch && branch !== currentBranch,
 	);
 
-	// Find the best candidate by looking for most recent common ancestor
+	// Find the best candidate by looking at how many of our commits are not on that branch
+	// (i.e., how far HEAD has diverged from the merge-base with each candidate)
 	let bestBranch = "";
 	let bestCount = Infinity;
 	for (const branch of branches) {
@@ -52,10 +55,15 @@ async function findBestGuessParentBranch(
 			const base = await getMergeBase(currentBranch, branch);
 			if (!base) continue;
 
-			const count = await getNumberOfCommitsBetweenBranches(base, branch);
+			const count = await getNumberOfCommitsBetweenBranches(base, "HEAD");
 
-			// Use the branch that has the closest relationship (fewest commits since diverging)
-			if (!Number.isNaN(count) && count < bestCount) {
+			// Use the branch whose merge-base is closest to HEAD (fewest commits ahead)
+			// On ties, prefer the dev branch (e.g. main) over stale local branches
+			if (
+				!Number.isNaN(count) &&
+				(count < bestCount ||
+					(count === bestCount && branch === devBranch))
+			) {
 				bestBranch = branch;
 				bestCount = count;
 			}
