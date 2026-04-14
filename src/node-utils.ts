@@ -5,9 +5,12 @@ export function generateRunNodeCommand({
 	directory?: string;
 	stringCommand: string;
 }): string {
-	return `zsh -c '${runWithFnm(
-		`${directory ? `cd ${directory} && ` : ""}${stringCommand}`,
-	)}'`;
+	// After cd, --use-on-cd silently fails if the version isn't installed (exit 0, wrong version).
+	// Explicitly run fnm install + fnm use to ensure the correct version is active.
+	const cdAndSetup = directory
+		? `cd ${directory} && fnm install --log-level=quiet && fnm use --silent-if-unchanged && `
+		: "";
+	return `zsh -c '${runWithFnm(`${cdAndSetup}${stringCommand}`)}'`;
 }
 
 /**
@@ -26,7 +29,8 @@ function runWithFnm(command: string): string {
  * so fnm can find the .nvmrc / .node-version file.
  */
 export function wrapWithFnmUse(command: string): string {
-	return `eval "$(fnm env --version-file-strategy=recursive --shell bash)" && fnm use --silent-if-unchanged && ${command}`;
+	// fnm install ensures the version in .node-version/.nvmrc is available before fnm use
+	return `eval "$(fnm env --version-file-strategy=recursive --shell bash)" && fnm install --log-level=quiet && fnm use --silent-if-unchanged && ${command}`;
 }
 
 /**
