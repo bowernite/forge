@@ -41,10 +41,16 @@ build_single() {
     
     # Build the file directly to bin directory
     bun build --compile --outfile="bin/$output_name" "$file"
-    
+
     # Clean up temporary files
     rm -f .*.bun-build
-    
+
+    # macOS kills unsigned Mach-O binaries on launch ("zsh: killed"). Ad-hoc sign
+    # to satisfy Gatekeeper. No-op on other platforms.
+    if [[ "$(uname)" == "Darwin" ]]; then
+        codesign -s - -f "bin/$output_name" >/dev/null 2>&1 || true
+    fi
+
     print_success "Build complete! Binary: bin/$output_name"
 }
 
