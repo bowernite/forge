@@ -19,6 +19,11 @@ export interface ValidationCommand {
 	color?: ChalkColor;
 	slow?: boolean;
 	directory?: string;
+	// If set, skip this command unless at least one of the listed pnpm scripts
+	// exists in the cwd's package.json. Lets us show honest "skipped" output
+	// for repos that don't have e.g. a root-level `build` script, rather than
+	// the misleading "succeeded" that `pnpm run --if-present` otherwise produces.
+	skipIfNoScripts?: string[];
 }
 
 export interface ValidationConfig {

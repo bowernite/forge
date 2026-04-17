@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import type { ValidationCommand } from "../config.js";
 import { expandPath } from "../utils.js";
@@ -32,9 +33,23 @@ function resolvePlaceholders(
 ): string {
 	let result = template;
 	for (const [key, value] of Object.entries(placeholders)) {
-		result = result.replace(key, value);
+		result = result.replaceAll(key, value);
 	}
 	return result;
+}
+
+function hasAnyScript(workingDir: string, scripts: string[]): boolean {
+	try {
+		const pkgPath = path.join(workingDir, "package.json");
+		const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+			scripts?: Record<string, string>;
+		};
+		const present = pkg.scripts ?? {};
+		return scripts.some((name) => name in present);
+	} catch {
+		// No package.json or unreadable — treat as "nothing to run"
+		return false;
+	}
 }
 
 // Check if the command template uses any placeholders that resolved to empty
@@ -78,7 +93,14 @@ export function buildCommandContext(
 		"{files_tests}": filesTests.join(" "),
 	};
 
-	const skip = hasEmptyRequiredPlaceholders(cmd.command, placeholders);
+	const skipForEmptyPlaceholders = hasEmptyRequiredPlaceholders(
+		cmd.command,
+		placeholders,
+	);
+	const skipForMissingScripts =
+		!!cmd.skipIfNoScripts?.length &&
+		!hasAnyScript(workingDir, cmd.skipIfNoScripts);
+	const skip = skipForEmptyPlaceholders || skipForMissingScripts;
 	const resolvedCommand = resolvePlaceholders(cmd.command, placeholders);
 
 	return {
