@@ -1,5 +1,8 @@
 import chalk from "chalk";
 import concurrently from "concurrently";
+import { execa } from "execa";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type { Service, ServiceConfig } from "./config.js";
 import {
 	type ServiceLogStream,
@@ -9,31 +12,83 @@ import { generateRunNodeCommand } from "./node-utils.js";
 import { cleanUpOrphanedServices } from "./port-utils.js";
 import { expandPath, wait } from "./utils.js";
 
+// Walk up from `dir` to find the nearest pnpm workspace root (directory containing
+// pnpm-workspace.yaml, falling back to pnpm-lock.yaml). Used to dedupe installs so
+// concurrent `pnpm install`s in sibling apps don't race on the shared store.
+function findWorkspaceRoot(dir: string): string {
+	let current = path.resolve(dir);
+	while (true) {
+		if (
+			existsSync(path.join(current, "pnpm-workspace.yaml")) ||
+			existsSync(path.join(current, "pnpm-lock.yaml"))
+		) {
+			return current;
+		}
+		const parent = path.dirname(current);
+		if (parent === current) return path.resolve(dir);
+		current = parent;
+	}
+}
+
 const PORT_CLEANUP_DELAY = 1000;
 
 export interface StartupOptions {
-	service?: string;
+	services?: string[];
 	serviceConfig: ServiceConfig;
 }
 
 export async function startServices(options: StartupOptions): Promise<void> {
-	const { service, serviceConfig } = options;
+	const { services, serviceConfig } = options;
 
-	const servicesToStart = service
-		? [serviceConfig[service]]
+	const servicesToStart = services && services.length > 0
+		? services.map((name) => {
+				const svc = serviceConfig[name];
+				if (!svc) {
+					throw new Error(
+						`Unknown service "${name}". Available: ${Object.keys(serviceConfig).join(", ")}`,
+					);
+				}
+				return svc;
+			})
 		: Object.values(serviceConfig);
 
 	await cleanUpOrphanedServices(servicesToStart);
 	await wait(PORT_CLEANUP_DELAY);
+
+	// Run installs serially before launching dev servers in parallel. pnpm in a
+	// shared workspace can't tolerate concurrent installs (ENOENT on unlink in
+	// node_modules/.pnpm), so dedupe by (workspace root, install command).
+	const installSeen = new Set<string>();
+	for (const svc of servicesToStart) {
+		if (!svc.installCommand) continue;
+		const dir = expandPath(svc.directory);
+		const wsRoot = findWorkspaceRoot(dir);
+		const key = `${wsRoot}\0${svc.installCommand}`;
+		if (installSeen.has(key)) continue;
+		installSeen.add(key);
+		console.log(
+			chalk.blue(`\n📦 Installing for ${svc.name} `) +
+				chalk.dim(`(${svc.installCommand} in ${wsRoot})`),
+		);
+		const installShellCmd = generateRunNodeCommand({
+			directory: svc.directory,
+			stringCommand: svc.installCommand,
+		});
+		try {
+			await execa(installShellCmd, { shell: true, stdio: "inherit" });
+		} catch (err) {
+			throw new Error(
+				`Install failed for ${svc.name} (${svc.installCommand}): ${err instanceof Error ? err.message : String(err)}`,
+			);
+		}
+	}
 
 	console.log(chalk.blue("\n🚀 Starting services...\n"));
 
 	const serviceCommands = servicesToStart.map((service) => ({
 		name: service.name.toUpperCase(),
 		command: buildServiceCommand(service),
-		displayCommand: service.installCommand
-			? `${service.installCommand} && ${service.startCommand}`
-			: service.startCommand,
+		displayCommand: service.startCommand,
 		directory: expandPath(service.directory),
 	}));
 
@@ -95,14 +150,9 @@ export async function startServices(options: StartupOptions): Promise<void> {
 }
 
 function buildServiceCommand(service: Service): string {
-	const installCmd = service.installCommand;
-
-	const command = installCmd
-		? `${installCmd} && ${service.startCommand}`
-		: service.startCommand;
-
+	// Install is handled serially up-front; here we only run the dev command.
 	return generateRunNodeCommand({
 		directory: service.directory,
-		stringCommand: command,
+		stringCommand: service.startCommand,
 	});
 }

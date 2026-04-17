@@ -7,6 +7,10 @@ export interface Service {
 	startCommand: string;
 	port?: number;
 	color?: ChalkColor;
+	// Short blurb describing what this service is.
+	description?: string;
+	// Guidance for when the user should actually start this service.
+	whenToUse?: string;
 }
 
 export interface ValidationCommand {

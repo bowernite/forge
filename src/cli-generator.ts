@@ -2,9 +2,28 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { execa } from "execa";
 import path from "node:path";
-import type { Config } from "./config.js";
+import type { Config, ServiceConfig } from "./config.js";
 import { startServices } from "./startup.js";
 import { runValidation } from "./validation.js";
+
+function renderServicesHelp(services: ServiceConfig): string {
+	const keys = Object.keys(services);
+	const keyWidth = Math.max(...keys.map((k) => k.length));
+	const lines: string[] = [chalk.bold("Services:")];
+	for (const key of keys) {
+		const svc = services[key];
+		const portSuffix = svc.port ? chalk.dim(` :${svc.port}`) : "";
+		const headline = svc.description
+			? `${chalk.cyan(key.padEnd(keyWidth))}  ${svc.description}${portSuffix}`
+			: `${chalk.cyan(key.padEnd(keyWidth))}${portSuffix}`;
+		lines.push(`  ${headline}`);
+		if (svc.whenToUse) {
+			const indent = " ".repeat(keyWidth + 4);
+			lines.push(`${indent}${chalk.dim("When:")} ${svc.whenToUse}`);
+		}
+	}
+	return lines.join("\n");
+}
 
 export interface ProjectConfig {
 	name: string;
@@ -60,20 +79,16 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 
 	// Start command
 	if (config.services) {
-		const serviceNames = Object.keys(config.services);
-		const serviceList = serviceNames.map((name) => `  - ${name}`).join("\n");
+		const servicesHelp = renderServicesHelp(config.services);
 		const startCommand = program
-			.command("start [service]")
-			.description("Start services")
-			.argument(
-				"[service]",
-				"Service name to start (or all services if not specified)",
-				"",
+			.command("start [services...]")
+			.description(
+				"Start one or more services (omit to start all)",
 			)
-			.action(async (service, _options) => {
+			.action(async (services: string[], _options) => {
 				if (!config.services) throw new Error("No services configured");
 				try {
-					await startServices({ service, serviceConfig: config.services });
+					await startServices({ services, serviceConfig: config.services });
 				} catch (error) {
 					console.error(
 						chalk.red("Error:"),
@@ -83,7 +98,8 @@ export function createCLI(projectConfig: ProjectConfig): Command {
 				}
 			});
 
-		startCommand.addHelpText("after", `\nAvailable services:\n${serviceList}`);
+		startCommand.addHelpText("after", `\n${servicesHelp}`);
+		program.addHelpText("after", `\n${servicesHelp}`);
 	}
 
 	// Config command
