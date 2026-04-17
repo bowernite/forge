@@ -42,13 +42,15 @@ build_single() {
     # Build the file directly to bin directory
     bun build --compile --outfile="bin/$output_name" "$file"
 
+
     # Clean up temporary files
     rm -f .*.bun-build
 
-    # macOS kills unsigned Mach-O binaries on launch ("zsh: killed"). Ad-hoc sign
-    # to satisfy Gatekeeper. No-op on other platforms.
+    # Ad-hoc codesign so macOS arm64 doesn't SIGKILL the binary.
+    # Bun's --compile output can land unsigned/invalid; an explicit adhoc sign is reliable.
     if [[ "$(uname)" == "Darwin" ]]; then
-        codesign -s - -f "bin/$output_name" >/dev/null 2>&1 || true
+        codesign --remove-signature "bin/$output_name" 2>/dev/null || true
+        codesign -s - "bin/$output_name"
     fi
 
     print_success "Build complete! Binary: bin/$output_name"
@@ -81,8 +83,14 @@ build_all() {
         
         # Build the file directly to bin directory
         bun build --compile --outfile="bin/$output_name" "$file"
+
+        # Ad-hoc codesign (see build_single for rationale)
+        if [[ "$(uname)" == "Darwin" ]]; then
+            codesign --remove-signature "bin/$output_name" 2>/dev/null || true
+            codesign -s - "bin/$output_name"
+        fi
     done
-    
+
     # Clean up temporary files
     rm -f .*.bun-build
     
