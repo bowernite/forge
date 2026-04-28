@@ -43,12 +43,13 @@ export async function runConcurrentValidation(
 	commands.forEach((cmd) => {
 		spinnies.add(cmd.name, {
 			text: cmd.skip
-				? `⏭️  ${cmd.name}: skipped (no matching files)`
+				? `⏭️  ${cmd.name}: skipped (${cmd.skipReason})`
 				: `🚀 ${cmd.name}: in progress...`,
 			spinnerColor: "blue",
 		});
 		if (cmd.skip) {
-			spinnies.succeed(cmd.name, { text: `⏭️  ${cmd.name} skipped (no matching files)  ` });
+			const emoji = cmd.skipReason?.startsWith("no matching") ? "⚠️ " : "⏭️ ";
+			spinnies.succeed(cmd.name, { text: `${emoji} ${cmd.name} skipped (${cmd.skipReason})  ` });
 		}
 	});
 
@@ -118,6 +119,15 @@ export async function runConcurrentValidation(
 	});
 
 	const results = await Promise.all(promises);
+
+	const skipped = commands.filter((cmd) => cmd.skip);
+	if (skipped.length > 0) {
+		console.log();
+		for (const cmd of skipped) {
+			const emoji = cmd.skipReason?.startsWith("no matching") ? "⚠️ " : "⏭️ ";
+			console.log(chalk.dim(`  ${emoji} ${cmd.name} skipped (${cmd.skipReason})`));
+		}
+	}
 
 	const failed = results.filter((r) => !r.success);
 

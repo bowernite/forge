@@ -13,6 +13,7 @@ export interface CommandContext {
 	filesJs: string[];
 	filesTests: string[];
 	skip?: boolean;
+	skipReason?: string;
 }
 
 function filterAndRelativizeFiles(
@@ -87,10 +88,14 @@ export function buildCommandContext(
 		workingDir,
 	);
 
+	// Shell-quote each path so that special characters like parentheses in Next.js
+	// route group dirs (e.g. app/(auth)/...) don't get misinterpreted by /bin/sh.
+	const shellQuote = (p: string) => `'${p.replaceAll("'", "'\\''")}'`;
+
 	const placeholders = {
-		"{files}": files.join(" "),
-		"{files_js}": filesJs.join(" "),
-		"{files_tests}": filesTests.join(" "),
+		"{files}": files.map(shellQuote).join(" "),
+		"{files_js}": filesJs.map(shellQuote).join(" "),
+		"{files_tests}": filesTests.map(shellQuote).join(" "),
 	};
 
 	const skipForEmptyPlaceholders = hasEmptyRequiredPlaceholders(
@@ -101,6 +106,9 @@ export function buildCommandContext(
 		!!cmd.skipIfNoScripts?.length &&
 		!hasAnyScript(workingDir, cmd.skipIfNoScripts);
 	const skip = skipForEmptyPlaceholders || skipForMissingScripts;
+	const skipReason = skipForMissingScripts
+		? `no script (${cmd.skipIfNoScripts?.join(" / ")})`
+		: "no matching files";
 	const resolvedCommand = resolvePlaceholders(cmd.command, placeholders);
 
 	return {
@@ -112,5 +120,6 @@ export function buildCommandContext(
 		filesJs,
 		filesTests,
 		skip,
+		skipReason,
 	};
 }
