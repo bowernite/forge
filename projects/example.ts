@@ -7,7 +7,7 @@ const exampleConfig: Config = {
 	services: {
 		app: {
 			name: "App",
-			directory: `${ROOT_DIR}/slc-app`,
+			directory: `${ROOT_DIR}/app`,
 			installCommand: "npm install",
 			startCommand: "bun run dev",
 			port: 3000,
