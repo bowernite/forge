@@ -239,12 +239,68 @@ export async function commitLintAndFormat(): Promise<void> {
 }
 
 async function getChangedFilesAgainstBase(baseBranch: string): Promise<string> {
+	const effectiveBase = await preferFresherRemoteBase(baseBranch);
 	const { stdout } = await execa(
 		"git",
-		["diff", "--name-status", `${baseBranch}...HEAD`],
+		["diff", "--name-status", `${effectiveBase}...HEAD`],
 		{ reject: false },
 	);
 	return stdout;
+}
+
+/**
+ * Given a base ref (often a *local* dev/parent branch like `main`/`master`),
+ * return the ref that yields the freshest merge-base against HEAD.
+ *
+ * A local dev branch frequently lags its remote (e.g. a branch or worktree cut
+ * straight off `origin/main` while local `main` was never updated). Diffing
+ * against the stale local ref then pulls in every upstream commit since the
+ * local ref last moved. To avoid that, we also consider the remote-tracking
+ * counterpart `origin/<branch>` and prefer it ONLY when it produces a newer
+ * base — i.e. when the local base is an ancestor of the remote base.
+ *
+ * The ancestor guard is important: if the local branch is *ahead* of its remote
+ * (e.g. a stacked/feature parent with unpushed commits), the local base is the
+ * newer one, so we keep it rather than regressing to an older remote base.
+ */
+async function preferFresherRemoteBase(baseBranch: string): Promise<string> {
+	// Already an explicit remote ref (or not a plain branch name) — leave as-is.
+	if (baseBranch.includes("/")) return baseBranch;
+
+	const remoteBranch = `origin/${baseBranch}`;
+	if (!(await refExists(remoteBranch))) return baseBranch;
+
+	const localBase = await getMergeBase(baseBranch, "HEAD");
+	const remoteBase = await getMergeBase(remoteBranch, "HEAD");
+	if (!localBase || !remoteBase) return baseBranch;
+	if (localBase === remoteBase) return baseBranch;
+
+	// Prefer the remote base only when it is strictly newer than the local base,
+	// i.e. the local base is an ancestor of the remote base.
+	if (await isAncestor(localBase, remoteBase)) return remoteBranch;
+
+	return baseBranch;
+}
+
+async function refExists(ref: string): Promise<boolean> {
+	const { exitCode } = await execa(
+		"git",
+		["rev-parse", "--verify", "--quiet", `${ref}^{commit}`],
+		{ reject: false },
+	);
+	return exitCode === 0;
+}
+
+async function isAncestor(
+	maybeAncestor: string,
+	descendant: string,
+): Promise<boolean> {
+	const { exitCode } = await execa(
+		"git",
+		["merge-base", "--is-ancestor", maybeAncestor, descendant],
+		{ reject: false },
+	);
+	return exitCode === 0;
 }
 
 async function getStagedFiles(): Promise<string> {
